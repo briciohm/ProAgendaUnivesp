@@ -7,17 +7,20 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   cancelAppointment,
   countTodayAppointments,
+  createFeedback,
   createAppointment,
   createClient,
   createService,
   getClient,
   getService,
+  getReminderSettings,
   hasAppointmentConflict,
   listAppointments,
   listClients,
   listServices,
   removeClient,
   removeService,
+  saveReminderSettings,
   updateAppointment,
   updateClient,
   updateService,
@@ -103,6 +106,13 @@ export const appRouter = router({
       return updateAppointment(ctx.user.id, input.id, { ...input.data, endsAt });
     }),
     cancel: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => cancelAppointment(ctx.user.id, input.id)),
+  }),
+  feedback: router({
+    submit: protectedProcedure.input(z.object({ rating: z.number().int().min(1).max(5), message: z.string().trim().min(5).max(2000) })).mutation(({ ctx, input }) => createFeedback({ ...input, ownerId: ctx.user.id })),
+  }),
+  reminders: router({
+    get: protectedProcedure.query(({ ctx }) => getReminderSettings(ctx.user.id)),
+    save: protectedProcedure.input(z.object({ channel: z.enum(["email", "whatsapp"]), recipient: z.string().trim().min(5).max(320), hoursBefore: z.number().int().min(1).max(168), enabled: z.boolean() })).mutation(({ ctx, input }) => saveReminderSettings(ctx.user.id, { ...input, enabled: input.enabled ? 1 : 0 })),
   }),
 });
 

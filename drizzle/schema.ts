@@ -1,4 +1,4 @@
-import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -47,6 +47,25 @@ export const appointments = mysqlTable("appointments", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const feedback = mysqlTable("feedback", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  rating: int("rating").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const reminderSettings = mysqlTable("reminderSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  channel: mysqlEnum("channel", ["email", "whatsapp"]).default("email").notNull(),
+  recipient: varchar("recipient", { length: 320 }).notNull(),
+  hoursBefore: int("hoursBefore").notNull().default(24),
+  enabled: int("enabled").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({ ownerUnique: uniqueIndex("reminderSettings_owner_unique").on(table.ownerId) }));
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Client = typeof clients.$inferSelect;
@@ -55,3 +74,7 @@ export type Appointment = typeof appointments.$inferSelect;
 export type InsertClient = typeof clients.$inferInsert;
 export type InsertService = typeof services.$inferInsert;
 export type InsertAppointment = typeof appointments.$inferInsert;
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = typeof feedback.$inferInsert;
+export type ReminderSettings = typeof reminderSettings.$inferSelect;
+export type InsertReminderSettings = typeof reminderSettings.$inferInsert;

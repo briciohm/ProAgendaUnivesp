@@ -5,8 +5,12 @@ import {
   clients,
   InsertAppointment,
   InsertClient,
+  InsertFeedback,
   InsertService,
   InsertUser,
+  feedback,
+  InsertReminderSettings,
+  reminderSettings,
   services,
   users,
 } from "../drizzle/schema";
@@ -189,4 +193,27 @@ export async function countTodayAppointments(ownerId: number, start: number, end
     .from(appointments)
     .where(and(eq(appointments.ownerId, ownerId), ne(appointments.status, "cancelled"), gt(appointments.startsAt, start), lt(appointments.startsAt, end)));
   return rows.length;
+}
+
+export async function createFeedback(data: InsertFeedback) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  return db.insert(feedback).values(data);
+}
+
+export async function getReminderSettings(ownerId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const rows = await db.select().from(reminderSettings).where(eq(reminderSettings.ownerId, ownerId)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function saveReminderSettings(ownerId: number, data: Omit<InsertReminderSettings, "ownerId">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  const existing = await getReminderSettings(ownerId);
+  if (existing) {
+    return db.update(reminderSettings).set(data).where(and(eq(reminderSettings.id, existing.id), eq(reminderSettings.ownerId, ownerId)));
+  }
+  return db.insert(reminderSettings).values({ ...data, ownerId });
 }
