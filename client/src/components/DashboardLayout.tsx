@@ -20,11 +20,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
-import { CalendarDays, LayoutDashboard, LogOut, PanelLeft, Scissors, Users } from "lucide-react";
+import { Accessibility, CalendarDays, Contrast, LayoutDashboard, LogOut, Moon, PanelLeft, Scissors, Sun, Users } from "lucide-react";
 import { CSSProperties, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Visão geral", path: "/" },
@@ -41,6 +42,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return saved ? parseInt(saved, 10) : 248;
   });
   const { loading, user } = useAuth();
+  const [highContrast, setHighContrast] = useState(() => localStorage.getItem("proagenda-high-contrast") === "true");
+  const [reducedMotion, setReducedMotion] = useState(() => localStorage.getItem("proagenda-reduced-motion") === "true");
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("high-contrast", highContrast);
+    document.documentElement.classList.toggle("reduce-motion", reducedMotion);
+    localStorage.setItem("proagenda-high-contrast", String(highContrast));
+    localStorage.setItem("proagenda-reduced-motion", String(reducedMotion));
+  }, [highContrast, reducedMotion]);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -64,13 +74,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}>
-      <DashboardLayoutContent user={user} setSidebarWidth={setSidebarWidth}>{children}</DashboardLayoutContent>
+      <DashboardLayoutContent user={user} setSidebarWidth={setSidebarWidth} highContrast={highContrast} reducedMotion={reducedMotion} onToggleContrast={() => setHighContrast(value => !value)} onToggleMotion={() => setReducedMotion(value => !value)}>{children}</DashboardLayoutContent>
     </SidebarProvider>
   );
 }
 
-function DashboardLayoutContent({ children, user, setSidebarWidth }: { children: React.ReactNode; user: NonNullable<ReturnType<typeof useAuth>["user"]>; setSidebarWidth: (width: number) => void }) {
+function DashboardLayoutContent({ children, user, highContrast, reducedMotion, onToggleContrast, onToggleMotion }: { children: React.ReactNode; user: NonNullable<ReturnType<typeof useAuth>["user"]>; setSidebarWidth: (width: number) => void; highContrast: boolean; reducedMotion: boolean; onToggleContrast: () => void; onToggleMotion: () => void }) {
   const { logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -110,7 +121,13 @@ function DashboardLayoutContent({ children, user, setSidebarWidth }: { children:
       </Sidebar>
       <SidebarInset className="bg-[#f5f1eb]">
         <div className="flex min-h-14 items-center gap-3 border-b border-[#e4ddd5] bg-[#fbfaf8]/90 px-4 backdrop-blur md:hidden"><SidebarTrigger className="h-9 w-9 rounded-xl bg-white" /><span className="text-sm font-semibold text-[#17212b]">{activeMenuItem.label}</span></div>
-        <main className="min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8">{children}</main>
+        <a href="#main-content" className="skip-link">Pular para o conteúdo principal</a>
+        <div className="fixed bottom-4 right-4 z-40 flex items-center gap-1 rounded-2xl border border-[#e4ddd5] bg-[#fffdfb]/95 p-1.5 shadow-lg backdrop-blur" aria-label="Preferências de acessibilidade">
+          <Button variant="ghost" size="icon" onClick={() => toggleTheme?.()} aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={theme === "dark" ? "Tema claro" : "Tema escuro"}>{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
+          <Button variant={highContrast ? "secondary" : "ghost"} size="icon" onClick={onToggleContrast} aria-pressed={highContrast} aria-label="Alternar alto contraste" title="Alto contraste"><Contrast className="h-4 w-4" /></Button>
+          <Button variant={reducedMotion ? "secondary" : "ghost"} size="icon" onClick={onToggleMotion} aria-pressed={reducedMotion} aria-label="Reduzir animações" title="Reduzir animações"><Accessibility className="h-4 w-4" /></Button>
+        </div>
+        <main id="main-content" tabIndex={-1} className="min-h-[calc(100vh-3.5rem)] p-4 outline-none sm:p-6 lg:p-8">{children}</main>
       </SidebarInset>
     </>
   );
