@@ -7,9 +7,14 @@ import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  // In middleware mode Vite otherwise falls back to its standalone default
+  // port (5173) when generating the browser HMR client. The managed preview
+  // exposes the Express server on PORT, so the browser must reconnect through
+  // that same public endpoint for both HTTP and WebSocket traffic.
+  const hmrClientPort = Number(process.env.PORT || 3000);
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: { server, clientPort: hmrClientPort },
     allowedHosts: true as const,
   };
 
